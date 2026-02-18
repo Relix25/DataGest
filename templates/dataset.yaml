@@ -1,0 +1,6 @@
+﻿dataset_id: "camera_1"
+name: "Camera 1 Raw Images"
+description: "Images captured by camera 1"
+source: "Camera 1 - Line A"
+created: "2026-02-18T16:00:00+00:00"
+linked_models: []

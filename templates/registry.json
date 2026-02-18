@@ -1,0 +1,26 @@
+﻿{
+  "version": "1.0",
+  "projects": [
+    {
+      "project_id": "defect_line_a",
+      "name": "Defect Line A",
+      "description": "Defect images for production line A",
+      "git_remote": "\\\\Server\\DataProjects\\git_remote\\defect_line_a.git",
+      "dvc_remote": "\\\\Server\\DataProjects\\dvc_remote\\defect_line_a",
+      "git_remote_sources": [
+        "\\\\ServerBackup\\DataProjects\\git_remote\\defect_line_a.git"
+      ],
+      "dvc_remote_sources": [
+        "\\\\ServerBackup\\DataProjects\\dvc_remote\\defect_line_a"
+      ],
+      "datasets": [
+        {
+          "dataset_id": "camera_1",
+          "name": "Camera 1 Raw Images",
+          "description": "Images captured by camera 1",
+          "source": "Camera 1 - Line A"
+        }
+      ]
+    }
+  ]
+}
