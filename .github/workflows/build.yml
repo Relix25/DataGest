@@ -32,10 +32,16 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - run: pyinstaller packaging/datagest.spec
+      - name: Package build output
+        shell: pwsh
+        run: |
+          $zipPath = "dist/DataGest-${{ github.ref_name }}.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path "dist/DataGest/*" -DestinationPath $zipPath
       - uses: actions/upload-artifact@v4
         with:
           name: DataGest-${{ github.ref_name }}
-          path: dist/DataGest
+          path: dist/DataGest-${{ github.ref_name }}.zip
 
   release:
     needs: build-exe
@@ -47,7 +53,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: DataGest-${{ github.ref_name }}
+          path: release-assets
       - uses: softprops/action-gh-release@v2
         with:
-          files: DataGest/**
+          files: release-assets/DataGest-${{ github.ref_name }}.zip
+          fail_on_unmatched_files: true
           generate_release_notes: true

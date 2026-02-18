@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - _Nothing yet._
 
+## [0.5.1] - 2026-02-18
+
+### Fixed
+- GitHub release pipeline now packages the PyInstaller `dist/DataGest` output as
+  `DataGest-vX.Y.Z.zip` and attaches it explicitly to the GitHub Release.
+- Release job now fails if the expected artifact file is missing, preventing
+  silent releases with only source archives.
+
 ## [0.5.0] - 2026-02-18
 
 ### Added
