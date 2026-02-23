@@ -171,7 +171,7 @@ Don't forget to give the project a star!
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the GPLv3 License. See `LICENSE` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
