@@ -66,11 +66,11 @@ It provides a pure Python Core API that can be consumed either via a headless Co
 
 ### Built With
 
-* [![Python][Python.org]][Python-url]
-* [![PySide6][Qt.io]][Qt-url]
-* [![Git][Git-scm.com]][Git-url]
-* [![DVC][DVC.org]][DVC-url]
-* [![FiftyOne][Voxel51.com]][FiftyOne-url]
+* [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+* [![PySide6](https://img.shields.io/badge/PySide6-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://www.qt.io/for-python)
+* [![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/)
+* [![DVC](https://img.shields.io/badge/DVC-13ADC7?style=for-the-badge&logo=dvc&logoColor=white)](https://dvc.org/)
+* [![FiftyOne](https://img.shields.io/badge/FiftyOne-FF6D04?style=for-the-badge&logo=python&logoColor=white)](https://voxel51.com/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -80,9 +80,11 @@ To get a local copy up and running, follow these simple steps.
 
 ### Prerequisites
 
-Make sure you have Python 3.10+ installed on your system.
-* pip
-  ```sh
+Before you begin, ensure you have met the following requirements:
+
+* **Python:** Version 3.10 or higher installed on your system.
+* **pip:** The Python package installer. Update it using:
+```sh
   python -m pip install --upgrade pip
 
 ```
@@ -178,5 +180,14 @@ Distributed under the MIT License. See `LICENSE` for more information.
 Relix25 - [GitHub Profile](https://github.com/Relix25)
 
 Project Link: [https://github.com/Relix25/DataGest](https://github.com/Relix25/DataGest)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Acknowledgments
+
+* [Othneil Drew's Best-README-Template](https://github.com/othneildrew/Best-README-Template) - For the fantastic and comprehensive README boilerplate.
+* [Voxel51](https://voxel51.com/) - For FiftyOne open-source computer vision toolset.
+* [Iterative](https://dvc.org/) - For Data Version Control (DVC).
+* [PySide6 (Qt for Python)](https://www.qt.io/for-python) - For the GUI framework.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
