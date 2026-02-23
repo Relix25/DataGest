@@ -66,11 +66,11 @@ It provides a pure Python Core API that can be consumed either via a headless Co
 
 ### Built With
 
-* [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-* [![PySide6](https://img.shields.io/badge/PySide6-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://www.qt.io/for-python)
-* [![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/)
-* [![DVC](https://img.shields.io/badge/DVC-13ADC7?style=for-the-badge&logo=dvc&logoColor=white)](https://dvc.org/)
-* [![FiftyOne](https://img.shields.io/badge/FiftyOne-FF6D04?style=for-the-badge&logo=python&logoColor=white)](https://voxel51.com/)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![PySide6](https://img.shields.io/badge/PySide6-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://www.qt.io/for-python)
+[![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/)
+[![DVC](https://img.shields.io/badge/DVC-13ADC7?style=for-the-badge&logo=dvc&logoColor=white)](https://dvc.org/)
+[![FiftyOne](https://img.shields.io/badge/FiftyOne-FF6D04?style=for-the-badge&logo=python&logoColor=white)](https://voxel51.com/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
