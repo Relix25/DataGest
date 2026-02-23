@@ -1,10 +1,10 @@
 <a id="readme-top"></a>
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+[![Contributors](https://img.shields.io/github/contributors/Relix25/DataGest.svg?style=for-the-badge)](https://github.com/Relix25/DataGest/graphs/contributors)
+[![Forks](https://img.shields.io/github/forks/Relix25/DataGest.svg?style=for-the-badge)](https://github.com/Relix25/DataGest/network/members)
+[![Stargazers](https://img.shields.io/github/stars/Relix25/DataGest.svg?style=for-the-badge)](https://github.com/Relix25/DataGest/stargazers)
+[![Issues](https://img.shields.io/github/issues/Relix25/DataGest.svg?style=for-the-badge)](https://github.com/Relix25/DataGest/issues)
+[![MIT License](https://img.shields.io/github/license/Relix25/DataGest.svg?style=for-the-badge)](https://github.com/Relix25/DataGest/blob/main/LICENSE)
 
 <br />
 <div align="center">
