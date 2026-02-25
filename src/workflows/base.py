@@ -1,41 +1,41 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import time
 from typing import Callable
 
-try:
-    from PySide6.QtCore import QObject, Signal
-except ModuleNotFoundError:
-    class _BoundSignal:
-        def __init__(self) -> None:
-            self._callbacks: list[Callable] = []
 
-        def connect(self, callback: Callable) -> None:
-            self._callbacks.append(callback)
+class _BoundSignal:
+    def __init__(self) -> None:
+        self._callbacks: list[Callable] = []
 
-        def emit(self, *args, **kwargs) -> None:
-            for callback in list(self._callbacks):
-                callback(*args, **kwargs)
+    def connect(self, callback: Callable) -> None:
+        self._callbacks.append(callback)
 
-    class Signal:  # type: ignore[misc]
-        def __init__(self, *args, **kwargs) -> None:
-            self.name: str | None = None
+    def emit(self, *args, **kwargs) -> None:
+        for callback in list(self._callbacks):
+            callback(*args, **kwargs)
 
-        def __set_name__(self, owner, name) -> None:
-            self.name = name
 
-        def __get__(self, instance, owner):
-            if instance is None:
-                return self
-            store = instance.__dict__.setdefault("_signals", {})
-            assert self.name is not None
-            if self.name not in store:
-                store[self.name] = _BoundSignal()
-            return store[self.name]
+class Signal:  # type: ignore[misc]
+    def __init__(self, *args, **kwargs) -> None:
+        self.name: str | None = None
 
-    class QObject:  # type: ignore[misc]
-        def __init__(self) -> None:
-            pass
+    def __set_name__(self, owner, name) -> None:
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        store = instance.__dict__.setdefault("_signals", {})
+        assert self.name is not None
+        if self.name not in store:
+            store[self.name] = _BoundSignal()
+        return store[self.name]
+
+
+class QObject:  # type: ignore[misc]
+    def __init__(self) -> None:
+        pass
 
 
 class BaseWorkflow(QObject):

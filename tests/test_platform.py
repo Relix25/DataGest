@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from utils.platform import get_app_gitconfig_path, validate_unc_path
@@ -18,7 +19,10 @@ def test_validate_unc_accepts_unc_syntax_without_existence_check() -> None:
 
 
 def test_get_app_gitconfig_path_uses_local_appdata(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    if os.name == "nt":
+        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     path = get_app_gitconfig_path()
     assert path is not None
     assert path.name == "gitconfig"

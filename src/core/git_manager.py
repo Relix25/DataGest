@@ -14,6 +14,12 @@ from utils.platform import get_app_gitconfig_path
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 
 
+def _popen_kwargs() -> dict:
+    if os.name == "nt":
+        return {"creationflags": CREATE_NO_WINDOW}
+    return {}
+
+
 class GitError(RuntimeError):
     pass
 
@@ -78,10 +84,10 @@ class GitManager:
             cwd=run_cwd,
             capture_output=True,
             text=True,
-            creationflags=CREATE_NO_WINDOW,
             env=env,
             timeout=self.timeout_seconds if self.timeout_seconds > 0 else None,
             check=False,
+            **_popen_kwargs(),
         )
 
     def run(self, args: Sequence[str], cwd: Path | None = None) -> str:
