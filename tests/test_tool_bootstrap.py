@@ -6,6 +6,23 @@ from core.config import AppConfig
 from core.tool_bootstrap import ToolBootstrap
 
 
+def test_ensure_git_prefers_system_path(tmp_path: Path, monkeypatch) -> None:
+    bootstrap = ToolBootstrap(AppConfig(), tools_dir=tmp_path)
+    monkeypatch.setattr("core.tool_bootstrap.shutil.which", lambda name: "/usr/bin/git" if name == "git" else None)
+
+    git_path = bootstrap.ensure_git()
+    assert git_path == Path("/usr/bin/git")
+
+
+def test_find_dvc_cli_checks_system_path_first(tmp_path: Path, monkeypatch) -> None:
+    bootstrap = ToolBootstrap(AppConfig(), tools_dir=tmp_path)
+    monkeypatch.setattr("core.tool_bootstrap.shutil.which", lambda name: "/usr/bin/dvc" if name == "dvc" else None)
+    monkeypatch.setattr(bootstrap, "_is_valid_dvc_exe", lambda path: True)
+
+    dvc_path = bootstrap._find_dvc_cli()
+    assert dvc_path == Path("/usr/bin/dvc")
+
+
 def test_resolve_dvc_source_keeps_preferred_when_available(tmp_path: Path, monkeypatch) -> None:
     bootstrap = ToolBootstrap(AppConfig(), tools_dir=tmp_path)
     monkeypatch.setattr(bootstrap, "_url_exists", lambda url: url == "https://preferred")

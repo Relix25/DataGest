@@ -1,27 +1,38 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import getpass
 import os
-import platform
 from pathlib import Path
 import re
+import socket
 
 
 def get_windows_username() -> str:
     try:
-        return os.getlogin()
-    except OSError:
+        username = getpass.getuser()
+        return username or "unknown"
+    except Exception:
         return os.environ.get("USERNAME") or os.environ.get("USER") or "unknown"
 
 
 def get_machine_name() -> str:
-    return platform.node() or "unknown-machine"
+    try:
+        name = socket.gethostname()
+        return name or "unknown-machine"
+    except Exception:
+        return "unknown-machine"
 
 
 def get_local_appdata() -> Path:
-    root = os.environ.get("LOCALAPPDATA")
-    if root:
-        return Path(root) / "DataGest"
-    return Path.home() / ".datagest"
+    if os.name == "nt":
+        root = os.environ.get("LOCALAPPDATA")
+        if root:
+            return Path(root) / "DataGest"
+        return Path.home() / "AppData" / "Local" / "DataGest"
+
+    xdg_root = os.environ.get("XDG_CONFIG_HOME")
+    base = Path(xdg_root) if xdg_root else Path.home() / ".config"
+    return base / "datagest"
 
 
 def get_app_gitconfig_path() -> Path | None:

@@ -19,6 +19,12 @@ ProgressCB = Callable[[str, int], None]
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 
 
+def _popen_kwargs() -> dict:
+    if os.name == "nt":
+        return {"creationflags": CREATE_NO_WINDOW}
+    return {}
+
+
 class ToolBootstrap:
     DVC_RELEASE_API = "https://api.github.com/repos/iterative/dvc/releases/latest"
     DVC_EXE_BASE_URL = "https://downloads.dvc.org/exe"
@@ -32,6 +38,13 @@ class ToolBootstrap:
         self.dvc_dir = self.tools_dir / "dvc"
 
     def ensure_git(self, progress_cb: ProgressCB | None = None) -> Path:
+        system_git = shutil.which("git")
+        if system_git:
+            return Path(system_git)
+
+        if os.name != "nt":
+            raise RuntimeError("Git executable not found on PATH. Please install Git.")
+
         candidates = [self.mingit_dir / "cmd" / "git.exe", self.mingit_dir / "bin" / "git.exe"]
         for candidate in candidates:
             if candidate.exists():
@@ -49,6 +62,9 @@ class ToolBootstrap:
         existing = self._find_dvc_cli()
         if existing:
             return existing
+
+        if os.name != "nt":
+            raise RuntimeError("DVC executable not found on PATH. Please install DVC.")
 
         source = self._resolve_source(self.config.dvc_lan, self.config.dvc_url)
         if source.lower().startswith(("http://", "https://")):
@@ -220,13 +236,20 @@ class ToolBootstrap:
             capture_output=True,
             text=True,
             check=False,
-            creationflags=CREATE_NO_WINDOW,
+            **_popen_kwargs(),
         )
         if proc.returncode != 0:
             msg = proc.stderr.strip() or proc.stdout.strip() or "Unknown installer error"
             raise RuntimeError(f"DVC installer failed: {msg}")
 
     def _find_dvc_cli(self) -> Path | None:
+        path_candidate = shutil.which("dvc")
+        if path_candidate:
+            candidate = Path(path_candidate)
+            if self._is_valid_dvc_exe(candidate):
+                return candidate
+
+        executable_name = "dvc.exe" if os.name == "nt" else "dvc"
         search_roots = [
             self.dvc_dir,
             self.dvc_dir / "install",
@@ -242,10 +265,10 @@ class ToolBootstrap:
             root = Path(root)
             if not root.exists():
                 continue
-            direct = root / "dvc.exe"
+            direct = root / executable_name
             if direct.exists():
                 candidates.append(direct)
-            candidates.extend(root.rglob("dvc.exe"))
+            candidates.extend(root.rglob(executable_name))
 
         seen: set[str] = set()
         for candidate in sorted(candidates, key=lambda p: len(str(p))):
@@ -266,8 +289,8 @@ class ToolBootstrap:
                 capture_output=True,
                 text=True,
                 check=False,
-                creationflags=CREATE_NO_WINDOW,
                 timeout=20,
+                **_popen_kwargs(),
             )
         except (OSError, subprocess.TimeoutExpired):
             return False
@@ -299,11 +322,15 @@ class ToolBootstrap:
             except Exception:
                 dvc_path = None
         else:
-            git_path = self.mingit_dir / "cmd" / "git.exe"
-            if not git_path.exists():
-                git_path = self.mingit_dir / "bin" / "git.exe"
+            git_from_path = shutil.which("git")
+            if git_from_path:
+                git_path = Path(git_from_path)
+            else:
+                git_path = self.mingit_dir / "cmd" / "git.exe"
                 if not git_path.exists():
-                    git_path = None
+                    git_path = self.mingit_dir / "bin" / "git.exe"
+                    if not git_path.exists():
+                        git_path = None
             dvc_path = self._find_dvc_cli()
 
         if git_path:

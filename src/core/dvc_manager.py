@@ -12,6 +12,12 @@ from utils.platform import get_app_gitconfig_path
 
 CREATE_NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 
+
+def _popen_kwargs() -> dict:
+    if os.name == "nt":
+        return {"creationflags": CREATE_NO_WINDOW}
+    return {}
+
 ProgressCB = Callable[[str, int], None]
 
 
@@ -65,10 +71,10 @@ class DVCManager:
             cwd=cwd or self.workspace,
             capture_output=True,
             text=True,
-            creationflags=CREATE_NO_WINDOW,
             env=self._base_env(),
             timeout=self.timeout_seconds if self.timeout_seconds > 0 else None,
             check=False,
+            **_popen_kwargs(),
         )
 
     def _run_checked(self, args: Sequence[str], cwd: Path | None = None) -> str:
@@ -103,8 +109,8 @@ class DVCManager:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                creationflags=CREATE_NO_WINDOW,
                 env=self._base_env(),
+                **_popen_kwargs(),
             )
             timed_out = {"value": False}
 
