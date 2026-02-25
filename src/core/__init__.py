@@ -1,3 +1,4 @@
+from .api import CoreCancelled, CoreStatus, DataGestCore
 from .config import AppConfig, load_config, save_config
 from .dvc_manager import DVCError, DVCManager
 from .git_manager import GitError, GitManager
@@ -7,6 +8,9 @@ from .tool_bootstrap import ToolBootstrap
 from .workspace import WorkspaceManager, WorkspaceState
 
 __all__ = [
+    "CoreCancelled",
+    "CoreStatus",
+    "DataGestCore",
     "AppConfig",
     "load_config",
     "save_config",

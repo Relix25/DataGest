@@ -4,8 +4,9 @@ import logging
 import shutil
 import sys
 from pathlib import Path
+from typing import Callable
 
-from PySide6.QtCore import QThread, Qt, Slot
+from PySide6.QtCore import QObject, QThread, Qt, Signal, Slot
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -22,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from core.api import CancelCB, DataGestCore, ErrorCB, ProgressCB
 from core.config import load_config, save_config
 from core.dvc_manager import DVCManager
 from core.git_manager import GitManager
@@ -41,12 +43,43 @@ from ui.widgets.progress_panel import ProgressPanel
 from ui.widgets.project_list import ProjectListWidget
 from utils.logging_setup import setup_logging
 from version import APP_VERSION
-from workflows.history_workflow import LoadHistoryWorkflow, RestoreVersionWorkflow, ReturnToLatestWorkflow
-from workflows.import_workflow import ImportWorkflow
-from workflows.sync_workflow import FetchLatestWorkflow, PublishWorkflow
 
 
 logger = logging.getLogger(__name__)
+
+
+CoreTask = Callable[[ProgressCB, ErrorCB, CancelCB], tuple[bool, str, object | None]]
+
+
+class CoreTaskRunner(QObject):
+    progress = Signal(str, int)
+    finished = Signal(bool, str)
+    error = Signal(str)
+    payload_ready = Signal(object)
+
+    def __init__(self, task: CoreTask) -> None:
+        super().__init__()
+        self._task = task
+        self._cancelled = False
+
+    @Slot()
+    def execute(self) -> None:
+        success = False
+        message = "Task failed."
+        try:
+            success, message, payload = self._task(self.progress.emit, self.error.emit, self.is_cancelled)
+            if payload is not None:
+                self.payload_ready.emit(payload)
+        except Exception as exc:
+            self.error.emit(str(exc))
+            message = str(exc)
+        self.finished.emit(success, message)
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    def is_cancelled(self) -> bool:
+        return self._cancelled
 
 
 class MainWindow(QMainWindow):
@@ -76,13 +109,14 @@ class MainWindow(QMainWindow):
             ttl_hours=self.config.lock_ttl_hours,
             admin_mode=self.config.admin_mode,
         )
+        self.core_api = DataGestCore(self.workspace, self.lock_manager)
         self.registry_loader = RegistryLoader(self.config.registry_path)
 
         self.current_project: ProjectConfig | None = None
         self.current_dataset_info: DatasetInfo | None = None
 
         self._workflow_thread: QThread | None = None
-        self._workflow = None
+        self._workflow: CoreTaskRunner | None = None
         self._updating_registry_selector = False
 
         self.project_list = ProjectListWidget()
@@ -287,16 +321,24 @@ class MainWindow(QMainWindow):
             return
 
         source, description, replace_dataset = dialog.get_values()
-        workflow = ImportWorkflow(
-            project=self.current_project,
-            dataset=self.current_dataset_info.config,
-            source_folder=source,
-            workspace=self.workspace,
-            lock_manager=self.lock_manager,
-            description=description,
-            replace_dataset=replace_dataset,
-        )
-        self._run_workflow(workflow, refresh_after=True)
+
+        project = self.current_project
+        dataset = self.current_dataset_info.config
+
+        def task(progress_cb: ProgressCB, error_cb: ErrorCB, cancel_cb: CancelCB) -> tuple[bool, str, object | None]:
+            success, message = self.core_api.import_dataset(
+                project=project,
+                dataset=dataset,
+                source_folder=source,
+                description=description,
+                replace_dataset=replace_dataset,
+                progress_cb=progress_cb,
+                error_cb=error_cb,
+                cancel_cb=cancel_cb,
+            )
+            return success, message, None
+
+        self._run_workflow(task, refresh_after=True)
 
     def on_publish_requested(self) -> None:
         if not self.current_project or not self.current_dataset_info:
@@ -314,20 +356,39 @@ class MainWindow(QMainWindow):
         if not ok or not message.strip():
             return
 
-        workflow = PublishWorkflow(
-            self.current_project,
-            self.workspace,
-            commit_message=message.strip(),
-            dataset_id=self.current_dataset_info.config.dataset_id,
-        )
-        self._run_workflow(workflow, refresh_after=True)
+        project = self.current_project
+        dataset_id = self.current_dataset_info.config.dataset_id
+        commit_message = message.strip()
+
+        def task(progress_cb: ProgressCB, error_cb: ErrorCB, cancel_cb: CancelCB) -> tuple[bool, str, object | None]:
+            success, result_message = self.core_api.publish(
+                project=project,
+                commit_message=commit_message,
+                dataset_id=dataset_id,
+                progress_cb=progress_cb,
+                error_cb=error_cb,
+                cancel_cb=cancel_cb,
+            )
+            return success, result_message, None
+
+        self._run_workflow(task, refresh_after=True)
 
     def on_fetch_requested(self) -> None:
         if not self.current_project:
             return
 
-        workflow = FetchLatestWorkflow(self.current_project, self.workspace)
-        self._run_workflow(workflow, refresh_after=True)
+        project = self.current_project
+
+        def task(progress_cb: ProgressCB, error_cb: ErrorCB, cancel_cb: CancelCB) -> tuple[bool, str, object | None]:
+            success, message = self.core_api.fetch(
+                project=project,
+                progress_cb=progress_cb,
+                error_cb=error_cb,
+                cancel_cb=cancel_cb,
+            )
+            return success, message, None
+
+        self._run_workflow(task, refresh_after=True)
 
     def on_history_requested(self, activate_tab: bool = True) -> None:
         if not self.current_project or not self.current_dataset_info:
@@ -335,18 +396,23 @@ class MainWindow(QMainWindow):
         if self._workflow_thread is not None:
             return
 
-        workflow = LoadHistoryWorkflow(
-            self.current_project,
-            self.current_dataset_info.config.dataset_id,
-            self.workspace,
-        )
-        workflow.history_loaded.connect(
-            self.history.set_commits,
-            Qt.ConnectionType.QueuedConnection,
-        )
+        project = self.current_project
+        dataset_id = self.current_dataset_info.config.dataset_id
+
+        def task(progress_cb: ProgressCB, error_cb: ErrorCB, cancel_cb: CancelCB) -> tuple[bool, str, object | None]:
+            success, message, commits = self.core_api.load_history(
+                project=project,
+                dataset_id=dataset_id,
+                progress_cb=progress_cb,
+                error_cb=error_cb,
+                cancel_cb=cancel_cb,
+            )
+            payload: object | None = commits if success else None
+            return success, message, payload
+
         if activate_tab:
             self.right_tabs.setCurrentWidget(self.history)
-        self._run_workflow(workflow, refresh_after=False)
+        self._run_workflow(task, refresh_after=False, payload_handler=self.history.set_commits)
 
     def on_tab_changed(self, index: int) -> None:
         if self.right_tabs.widget(index) is self.history:
@@ -370,14 +436,35 @@ class MainWindow(QMainWindow):
         if choice != QMessageBox.Yes:
             return
 
-        workflow = RestoreVersionWorkflow(self.current_project, commit_hash, self.workspace)
-        self._run_workflow(workflow, refresh_after=True)
+        project = self.current_project
+
+        def task(progress_cb: ProgressCB, error_cb: ErrorCB, cancel_cb: CancelCB) -> tuple[bool, str, object | None]:
+            success, message = self.core_api.restore(
+                project=project,
+                commit_ref=commit_hash,
+                progress_cb=progress_cb,
+                error_cb=error_cb,
+                cancel_cb=cancel_cb,
+            )
+            return success, message, None
+
+        self._run_workflow(task, refresh_after=True)
 
     def on_return_to_latest_requested(self) -> None:
         if not self.current_project:
             return
-        workflow = ReturnToLatestWorkflow(self.current_project, self.workspace)
-        self._run_workflow(workflow, refresh_after=True)
+        project = self.current_project
+
+        def task(progress_cb: ProgressCB, error_cb: ErrorCB, cancel_cb: CancelCB) -> tuple[bool, str, object | None]:
+            success, message = self.core_api.return_to_latest(
+                project=project,
+                progress_cb=progress_cb,
+                error_cb=error_cb,
+                cancel_cb=cancel_cb,
+            )
+            return success, message, None
+
+        self._run_workflow(task, refresh_after=True)
 
     def on_cancel_requested(self) -> None:
         if self._workflow is not None:
@@ -392,7 +479,12 @@ class MainWindow(QMainWindow):
     def _on_workflow_error(self, message: str) -> None:
         QMessageBox.critical(self, "Workflow error", message)
 
-    def _run_workflow(self, workflow, refresh_after: bool) -> None:
+    def _run_workflow(
+        self,
+        task: CoreTask,
+        refresh_after: bool,
+        payload_handler: Callable[[object], None] | None = None,
+    ) -> None:
         if self._workflow_thread is not None:
             QMessageBox.warning(self, "Busy", "Another task is already running.")
             return
@@ -401,10 +493,13 @@ class MainWindow(QMainWindow):
         self.progress.set_running(True)
 
         thread = QThread(self)
+        workflow = CoreTaskRunner(task)
         workflow.moveToThread(thread)
 
         workflow.progress.connect(self._on_workflow_progress, Qt.ConnectionType.QueuedConnection)
         workflow.error.connect(self._on_workflow_error, Qt.ConnectionType.QueuedConnection)
+        if payload_handler is not None:
+            workflow.payload_ready.connect(payload_handler, Qt.ConnectionType.QueuedConnection)
 
         def on_finished(success: bool, message: str) -> None:
             self.progress.set_finished(success, message)
@@ -416,6 +511,7 @@ class MainWindow(QMainWindow):
         workflow.finished.connect(on_finished, Qt.ConnectionType.QueuedConnection)
 
         thread.started.connect(workflow.execute)
+        thread.finished.connect(workflow.deleteLater)
         thread.finished.connect(thread.deleteLater)
         thread.finished.connect(self._clear_running_workflow)
 
@@ -477,6 +573,8 @@ class MainWindow(QMainWindow):
             timeout_seconds=self.config.dvc_timeout_seconds,
         )
         self.workspace = WorkspaceManager(root, self.git_manager, self.dvc_manager)
+        if hasattr(self, "lock_manager"):
+            self.core_api = DataGestCore(self.workspace, self.lock_manager)
 
     def show_options(self) -> None:
         if self._workflow_thread is not None:
