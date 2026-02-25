@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - _Nothing yet._
 
+## [0.6.0] - 2026-02-25
+
+### Added
+- New pure Python core facade (`src/core/api.py`) for workflow operations (`import_dataset`, `publish`, `fetch`, `restore`, history/status helpers) with callback-driven progress/error/cancel hooks.
+- New headless CLI entry point (`cli.py`) with `datagest status` and `datagest sync`.
+- New keyring-backed credential utility (`src/core/credential_manager.py`) and test coverage.
+
+### Changed
+- UI workflow execution now uses UI-owned Qt worker wrappers (`CoreTaskRunner`) that call the core API, instead of coupling business logic to Qt workflow classes.
+- Platform/runtime behavior is now OS-agnostic for user/machine identity and local app config paths (`~/.config/datagest` on Unix).
+- Tool bootstrap now prefers system `git`/`dvc` from `PATH` on non-Windows hosts.
+
+### Fixed
+- Subprocess creation flags are now applied only on Windows, preventing Unix crashes from Windows-only flags.
+
 ## [0.5.1] - 2026-02-18
 
 ### Fixed
